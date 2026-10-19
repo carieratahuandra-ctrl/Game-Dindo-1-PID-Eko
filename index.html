@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ECO-WEB DUEL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --team-a-color: #3b82f6; /* Blue Eagle */
+            --team-b-color: #f97316; /* Orange Tiger */
+        }
+        body {
+            font-family: 'Nunito', sans-serif;
+            overflow: hidden;
+            touch-action: none; /* Prevent scroll on IFP */
+            user-select: none;
+            background-color: #87CEEB; /* Sky blue */
+        }
+        .font-game { font-family: 'Fredoka One', cursive; }
+        
+        /* 2D Platformer Background */
+        .bg-platformer {
+            background: linear-gradient(to bottom, #4fc3f7 0%, #b3e5fc 60%, #81c784 60%, #388e3c 100%);
+            position: relative;
+        }
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 50px;
+            box-shadow: 0 8px 5px rgba(0,0,0,0.1);
+        }
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+        }
+        .cloud::before { width: 50px; height: 50px; top: -20px; left: 15px; }
+        .cloud::after { width: 70px; height: 70px; top: -30px; left: 45px; }
+        
+        /* Animations */
+        @keyframes floatCloud {
+            from { transform: translateX(110vw); }
+            to { transform: translateX(-20vw); }
+        }
+        @keyframes bounceChar {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-15px); }
+        }
+        @keyframes swayGrass {
+            0%, 100% { transform: rotate(-5deg); }
+            50% { transform: rotate(5deg); }
+        }
+        @keyframes pulseGlow {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(255,215,0,0.5)); }
+            50% { filter: drop-shadow(0 0 20px rgba(255,215,0,1)); }
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        @keyframes confettiFall {
+            0% { transform: translateY(-10vh) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+        }
+
+        .anim-cloud-1 { animation: floatCloud 40s linear infinite; top: 10%; width: 120px; height: 40px; }
+        .anim-cloud-2 { animation: floatCloud 30s linear infinite 15s; top: 25%; width: 150px; height: 50px; }
+        .anim-cloud-3 { animation: floatCloud 50s linear infinite 5s; top: 5%; width: 100px; height: 35px; }
+        .anim-bounce { animation: bounceChar 2s ease-in-out infinite; }
+        .anim-sway { animation: swayGrass 3s ease-in-out infinite; transform-origin: bottom center; }
+        .anim-glow { animation: pulseGlow 2s infinite; }
+        .anim-shake { animation: shake 0.4s; }
+
+        /* UI Elements */
+        .game-title {
+            text-shadow: 4px 4px 0px #005A9C, -2px -2px 0px #005A9C, 2px -2px 0px #005A9C, -2px 2px 0px #005A9C, 2px 2px 0px #005A9C, 0px 8px 0px rgba(0,0,0,0.3);
+            color: #FFD700;
+            letter-spacing: 2px;
+        }
+        .btn-game {
+            transition: all 0.2s;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.2), 0 10px 10px rgba(0,0,0,0.2);
+        }
+        .btn-game:active {
+            transform: translateY(6px);
+            box-shadow: 0 0px 0 rgba(0,0,0,0.2), 0 4px 4px rgba(0,0,0,0.2);
+        }
+        .panel-wood {
+            background: #8b5a2b;
+            border: 4px solid #5c3a21;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5), 0 10px 20px rgba(0,0,0,0.3);
+            border-radius: 16px;
+            color: white;
+        }
+        .slot-target {
+            border: 3px dashed #fff;
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+        .slot-target.active { border-color: #FFD700; background: rgba(255,215,0,0.3); transform: scale(1.05); }
+        
+        /* SVG Line drawing */
+        .svg-line {
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: drawLine 1.5s forwards;
+        }
+        @keyframes drawLine { to { stroke-dashoffset: 0; } }
+
+        .hidden-screen { display: none !important; }
+        
+        /* Confetti */
+        .confetti { position: absolute; width: 10px; height: 10px; z-index: 100; }
+    </style>
+</head>
+<body class="w-full h-screen relative bg-platformer">
+
+    <!-- SVG Library (Hidden) -->
+    <svg width="0" height="0" class="absolute hidden">
+        <defs>
+            <!-- Leaf Coin -->
+            <g id="icon-leaf">
+                <circle cx="20" cy="20" r="18" fill="#FFD700" stroke="#B8860B" stroke-width="2"/>
+                <path d="M20 8 C12 8, 10 20, 20 30 C30 20, 28 8, 20 8 Z" fill="#32CD32"/>
+                <path d="M20 12 L20 28" stroke="#006400" stroke-width="2"/>
+            </g>
+            <!-- Blue Eagle -->
+            <g id="char-eagle">
+                <circle cx="30" cy="30" r="25" fill="#3b82f6" stroke="#1e3a8a" stroke-width="3"/>
+                <path d="M10 30 Q30 50 50 30" fill="none" stroke="#fff" stroke-width="4"/>
+                <circle cx="20" cy="22" r="4" fill="#fff"/><circle cx="20" cy="22" r="2" fill="#000"/>
+                <circle cx="40" cy="22" r="4" fill="#fff"/><circle cx="40" cy="22" r="2" fill="#000"/>
+                <path d="M25 25 L35 25 L30 35 Z" fill="#fbbf24"/>
+                <path d="M5 20 Q-5 30 5 40" fill="#60a5fa"/>
+                <path d="M55 20 Q65 30 55 40" fill="#60a5fa"/>
+            </g>
+            <!-- Orange Tiger -->
+            <g id="char-tiger">
+                <circle cx="30" cy="30" r="25" fill="#f97316" stroke="#9a3412" stroke-width="3"/>
+                <path d="M10 10 L15 20 L20 10 Z" fill="#f97316" stroke="#9a3412" stroke-width="2"/>
+                <path d="M50 10 L45 20 L40 10 Z" fill="#f97316" stroke="#9a3412" stroke-width="2"/>
+                <circle cx="20" cy="25" r="4" fill="#fff"/><circle cx="20" cy="25" r="2" fill="#000"/>
+                <circle cx="40" cy="25" r="4" fill="#fff"/><circle cx="40" cy="25" r="2" fill="#000"/>
+                <path d="M25 35 Q30 40 35 35" fill="none" stroke="#000" stroke-width="2"/>
+                <path d="M30 30 L27 33 L33 33 Z" fill="#000"/>
+                <!-- Stripes -->
+                <path d="M5 25 L15 25" stroke="#000" stroke-width="2"/><path d="M5 35 L15 35" stroke="#000" stroke-width="2"/>
+                <path d="M55 25 L45 25" stroke="#000" stroke-width="2"/><path d="M55 35 L45 35" stroke="#000" stroke-width="2"/>
+                <path d="M30 5 L30 15" stroke="#000" stroke-width="2"/>
+            </g>
+            <!-- Organism: Padi -->
+            <g id="org-padi">
+                <rect x="25" y="40" width="10" height="20" fill="#8B4513"/>
+                <path d="M30 45 Q15 25 30 5 Q45 25 30 45" fill="#32CD32" stroke="#228B22" stroke-width="2"/>
+                <circle cx="25" cy="20" r="3" fill="#FFD700"/><circle cx="35" cy="25" r="3" fill="#FFD700"/><circle cx="30" cy="15" r="3" fill="#FFD700"/>
+            </g>
+            <!-- Organism: Belalang -->
+            <g id="org-belalang">
+                <ellipse cx="30" cy="35" rx="15" ry="8" fill="#7CFC00" stroke="#006400" stroke-width="2"/>
+                <circle cx="45" cy="30" r="6" fill="#7CFC00" stroke="#006400" stroke-width="2"/>
+                <path d="M25 35 Q10 15 5 45" fill="none" stroke="#006400" stroke-width="2"/>
+                <path d="M35 35 Q25 20 20 45" fill="none" stroke="#006400" stroke-width="2"/>
+                <circle cx="47" cy="29" r="1.5" fill="#000"/>
+            </g>
+            <!-- Organism: Katak -->
+            <g id="org-katak">
+                <ellipse cx="30" cy="35" rx="20" ry="15" fill="#2E8B57" stroke="#006400" stroke-width="2"/>
+                <circle cx="20" cy="22" r="6" fill="#2E8B57" stroke="#006400" stroke-width="2"/>
+                <circle cx="40" cy="22" r="6" fill="#2E8B57" stroke="#006400" stroke-width="2"/>
+                <circle cx="20" cy="22" r="2" fill="#fff"/><circle cx="20" cy="22" r="1" fill="#000"/>
+                <circle cx="40" cy="22" r="2" fill="#fff"/><circle cx="40" cy="22" r="1" fill="#000"/>
+                <path d="M20 40 Q30 45 40 40" fill="none" stroke="#000" stroke-width="2"/>
+            </g>
+            <!-- Organism: Ular -->
+            <g id="org-ular">
+                <path d="M10 40 Q20 20 30 40 T50 40 T40 20" fill="none" stroke="#556B2F" stroke-width="8" stroke-linecap="round"/>
+                <circle cx="40" cy="20" r="6" fill="#556B2F"/>
+                <circle cx="42" cy="18" r="1.5" fill="#000"/>
+                <path d="M46 20 L52 18 L52 22 Z" fill="#DC143C"/>
+            </g>
+            <!-- Organism: Tikus -->
+            <g id="org-tikus">
+                <ellipse cx="30" cy="40" rx="15" ry="10" fill="#8B4513"/>
+                <circle cx="42" cy="35" r="8" fill="#8B4513"/>
+                <circle cx="38" cy="28" r="5" fill="#D2B48C"/><circle cx="46" cy="28" r="5" fill="#D2B48C"/>
+                <circle cx="44" cy="34" r="1.5" fill="#000"/>
+                <path d="M15 40 Q5 40 5 30" fill="none" stroke="#FFB6C1" stroke-width="2"/>
+                <circle cx="48" cy="36" r="2" fill="#000"/>
+            </g>
+            <!-- Boss Eagle -->
+            <g id="boss-eagle">
+                <path d="M50 80 L10 40 L30 100 Z" fill="#6B4226"/>
+                <path d="M50 80 L90 40 L70 100 Z" fill="#6B4226"/>
+                <ellipse cx="50" cy="60" rx="25" ry="35" fill="#8B5A2B"/>
+                <circle cx="50" cy="30" r="18" fill="#fff"/>
+                <path d="M45 35 L55 35 L50 45 Z" fill="#FFD700"/>
+                <circle cx="43" cy="25" r="3" fill="#000"/><circle cx="57" cy="25" r="3" fill="#000"/>
+                <path d="M40 20 L46 23" stroke="#000" stroke-width="2"/><path d="M60 20 L54 23" stroke="#000" stroke-width="2"/>
+            </g>
+            <!-- Explorer -->
+            <g id="char-explorer">
+                <rect x="20" y="30" width="20" height="25" fill="#D2B48C" rx="5"/>
+                <circle cx="30" cy="20" r="12" fill="#FFDFC4"/>
+                <path d="M18 15 Q30 5 42 15 Z" fill="#8B4513"/>
+                <circle cx="26" cy="18" r="1.5" fill="#000"/><circle cx="34" cy="18" r="1.5" fill="#000"/>
+                <path d="M28 24 Q30 26 32 24" fill="none" stroke="#000" stroke-width="1.5"/>
+                <rect x="15" y="30" width="10" height="20" fill="#8B4513" rx="3" transform="rotate(-20 20 30)"/>
+                <!-- Magnifying glass -->
+                <line x1="40" y1="40" x2="50" y2="50" stroke="#000" stroke-width="3"/>
+                <circle cx="50" cy="50" r="8" fill="#ADD8E6" stroke="#A9A9A9" stroke-width="3"/>
+            </g>
+            <!-- Icons -->
+            <g id="icon-book">
+                <rect x="10" y="10" width="40" height="30" fill="#8B4513" rx="2"/>
+                <rect x="12" y="12" width="17" height="26" fill="#fff"/><rect x="31" y="12" width="17" height="26" fill="#fff"/>
+                <line x1="15" y1="18" x2="25" y2="18" stroke="#ccc" stroke-width="2"/>
+                <line x1="15" y1="24" x2="25" y2="24" stroke="#ccc" stroke-width="2"/>
+                <line x1="35" y1="18" x2="45" y2="18" stroke="#ccc" stroke-width="2"/>
+            </g>
+            <g id="icon-sound-on">
+                <path d="M10 20 L20 20 L30 10 L30 50 L20 40 L10 40 Z" fill="#fff"/>
+                <path d="M40 20 Q45 30 40 40" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+                <path d="M47 15 Q55 30 47 45" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+            </g>
+            <g id="icon-sound-off">
+                <path d="M10 20 L20 20 L30 10 L30 50 L20 40 L10 40 Z" fill="#fff"/>
+                <line x1="35" y1="20" x2="50" y2="40" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+                <line x1="50" y1="20" x2="35" y2="40" stroke="#ef4444" stroke-width="4" stroke-linecap="round"/>
+            </g>
+            <g id="icon-map">
+                <rect x="10" y="10" width="40" height="40" fill="#fef3c7" stroke="#8b4513" stroke-width="2"/>
+                <path d="M10 20 L50 15 M10 35 L50 30" stroke="#d97706" stroke-width="1"/>
+                <circle cx="40" cy="20" r="3" fill="#ef4444"/>
+                <path d="M20 40 L25 30 L35 35 L40 20" fill="none" stroke="#000" stroke-width="2" stroke-dasharray="2,2"/>
+            </g>
+            <g id="icon-cup">
+                <path d="M10 15 Q30 50 50 15 Z" fill="#FFD700" stroke="#B8860B" stroke-width="2"/>
+                <rect x="25" y="40" width="10" height="15" fill="#FFD700" stroke="#B8860B" stroke-width="2"/>
+                <rect x="15" y="55" width="30" height="5" fill="#B8860B"/>
+                <!-- Leaf motif -->
+                <path d="M30 20 C25 20, 20 25, 30 35 C40 25, 35 20, 30 20 Z" fill="#fff" opacity="0.5"/>
+            </g>
+            <g id="icon-star">
+                <polygon points="30,5 36,20 52,20 39,30 44,46 30,36 16,46 21,30 8,20 24,20" fill="#FFD700" stroke="#B8860B" stroke-width="1"/>
+            </g>
+            <g id="icon-arrow">
+                <line x1="5" y1="30" x2="45" y2="30" stroke="#000" stroke-width="4"/>
+                <polygon points="45,20 55,30 45,40" fill="#000"/>
+            </g>
+        </defs>
+    </svg>
+
+    <!-- Background Elements (Persistent) -->
+    <div class="absolute inset-0 pointer-events-none z-0">
+        <div class="cloud anim-cloud-1"></div>
+        <div class="cloud anim-cloud-2"></div>
+        <div class="cloud anim-cloud-3"></div>
+        <!-- Hills -->
+        <div class="absolute bottom-0 w-full h-1/3 bg-green-500 rounded-t-[50%] scale-x-150 translate-y-10 border-t-8 border-green-600"></div>
+        <div class="absolute bottom-0 w-full h-1/4 bg-green-400 rounded-t-[50%] scale-x-125 translate-x-20 border-t-8 border-green-500"></div>
+        <!-- Plants -->
+        <svg class="absolute bottom-10 left-10 anim-sway w-16 h-16"><use href="#org-padi"/></svg>
+        <svg class="absolute bottom-8 right-20 anim-sway w-16 h-16" style="animation-delay: 0.5s"><use href="#org-padi"/></svg>
+        <svg class="absolute bottom-16 left-1/4 anim-sway w-12 h-12" style="animation-delay: 1s"><use href="#org-padi"/></svg>
+    </div>
+
+    <!-- Screen 1: Main Menu -->
+    <div id="screen-home" class="screen absolute inset-0 z-10 flex flex-col items-center justify-center p-4">
+        <div class="text-center mb-8 anim-bounce">
+            <h1 class="game-title text-6xl md:text-8xl font-game mb-2 text-center">ECO-WEB DUEL</h1>
+            <p class="text-white text-xl md:text-3xl font-bold font-game" style="text-shadow: 2px 2px 0 #000;">Petualangan Ekosistem!</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl px-4">
+            <!-- Play Button -->
+            <button onclick="startGameSetup()" class="btn-game bg-green-500 hover:bg-green-400 border-4 border-green-700 rounded-2xl p-4 flex items-center justify-between group">
+                <div class="flex items-center gap-4">
+                    <div class="relative w-20 h-20 bg-green-200 rounded-full border-4 border-white overflow-hidden flex items-center justify-center">
+                        <svg class="w-12 h-12 absolute -left-2"><use href="#char-eagle"/></svg>
+                        <svg class="w-12 h-12 absolute -right-2"><use href="#char-tiger"/></svg>
+                        <div class="absolute text-yellow-500 font-black text-xl italic drop-shadow-md z-10">VS</div>
+                    </div>
+                    <div class="text-left">
+                        <h2 class="text-white text-3xl font-game" style="text-shadow: 2px 2px 0 #000;">MULAI DUEL</h2>
+                        <p class="text-green-100 font-bold text-sm">Masuk ke arena pertarungan!</p>
+                    </div>
+                </div>
+            </button>
+
+            <!-- Learn Button -->
+            <button onclick="showScreen('screen-learn')" class="btn-game bg-blue-500 hover:bg-blue-400 border-4 border-blue-700 rounded-2xl p-4 flex items-center justify-between group">
+                <div class="flex items-center gap-4">
+                    <div class="w-20 h-20 bg-blue-200 rounded-full border-4 border-white flex items-center justify-center anim-glow">
+                        <svg class="w-16 h-16"><use href="#icon-book"/></svg>
+                    </div>
+                    <div class="text-left">
+                        <h2 class="text-white text-3xl font-game" style="text-shadow: 2px 2px 0 #000;">PELAJARI MATERI</h2>
+                        <p class="text-blue-100 font-bold text-sm">Buku pintar ekosistem.</p>
+                    </div>
+                </div>
+            </button>
+
+            <!-- Rules Button -->
+            <button onclick="showScreen('screen-rules')" class="btn-game bg-purple-500 hover:bg-purple-400 border-4 border-purple-700 rounded-2xl p-4 flex items-center justify-between group">
+                <div class="flex items-center gap-4">
+                    <div class="w-20 h-20 bg-purple-200 rounded-full border-4 border-white flex items-center justify-center">
+                        <svg class="w-16 h-16"><use href="#icon-map"/></svg>
+                        <svg class="w-10 h-10 absolute bottom-0 right-0"><use href="#char-explorer"/></svg>
+                    </div>
+                    <div class="text-left">
+                        <h2 class="text-white text-3xl font-game" style="text-shadow: 2px 2px 0 #000;">PETUNJUK</h2>
+                        <p class="text-purple-100 font-bold text-sm">Peta permainan.</p>
+                    </div>
+                </div>
+            </button>
+
+            <!-- Sound Button -->
+            <button onclick="toggleSound()" class="btn-game bg-yellow-500 hover:bg-yellow-400 border-4 border-yellow-700 rounded-2xl p-4 flex items-center justify-between group">
+                <div class="flex items-center gap-4">
+                    <div id="sound-icon-bg" class="w-20 h-20 bg-yellow-200 rounded-full border-4 border-white flex items-center justify-center">
+                        <svg id="svg-sound" class="w-12 h-12 drop-shadow-md"><use href="#icon-sound-on"/></svg>
+                    </div>
+                    <div class="text-left">
+                        <h2 class="text-white text-3xl font-game" style="text-shadow: 2px 2px 0 #000;">PENGATURAN SUARA</h2>
+                        <p id="sound-status-text" class="text-yellow-900 font-bold text-sm">Suara Aktif</p>
+                    </div>
+                </div>
+            </button>
+        </div>
+
+        <!-- Character Decoration -->
+        <div class="absolute bottom-8 left-8 hidden md:block">
+            <svg class="w-24 h-24 anim-bounce drop-shadow-lg"><use href="#char-explorer"/></svg>
+        </div>
+
+        <!-- Mandatory Credit -->
+        <div class="absolute bottom-4 flex items-center gap-2 text-white font-bold drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] text-lg md:text-xl z-50">
+            <svg class="w-6 h-6 anim-glow"><use href="#icon-star"/></svg>
+            Game by Dindo Noto Sastro, S.Pd.
+        </div>
+    </div>
+
+    <!-- Screen: Learn Material -->
+    <div id="screen-learn" class="screen hidden-screen absolute inset-0 z-20 flex flex-col items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="panel-wood w-full max-w-4xl p-6 md:p-10 relative">
+            <button onclick="showScreen('screen-home')" class="absolute -top-4 -right-4 bg-red-500 border-4 border-white text-white rounded-full w-12 h-12 font-game text-2xl hover:scale-110 transition-transform btn-game">X</button>
+            <h2 class="text-4xl font-game text-yellow-300 text-center mb-6" style="text-shadow: 2px 2px 0 #000;">Rantai & Jaring Makanan</h2>
+            
+            <div class="bg-white/10 rounded-xl p-4 mb-4 flex flex-col md:flex-row items-center gap-6">
+                <svg class="w-32 h-32 flex-shrink-0"><use href="#icon-book"/></svg>
+                <div>
+                    <p class="text-lg mb-2"><strong>Produsen:</strong> Tumbuhan hijau seperti <span class="text-green-300">Padi</span> yang menghasilkan makanan sendiri.</p>
+                    <p class="text-lg mb-2"><strong>Konsumen:</strong> Hewan yang memakan makhluk hidup lain. <span class="text-yellow-300">Belalang</span> (K.I), <span class="text-blue-300">Katak</span> (K.II), <span class="text-red-300">Ular</span> (K.III).</p>
+                    <p class="text-lg"><strong>Puncak:</strong> Predator seperti <span class="text-gray-300">Elang</span>.</p>
+                </div>
+            </div>
+            <div class="bg-black/30 rounded-xl p-4 flex justify-between items-center overflow-x-auto gap-2">
+                <svg class="w-16 h-16"><use href="#org-padi"/></svg>
+                <svg class="w-10 h-10 text-white"><use href="#icon-arrow"/></svg>
+                <svg class="w-16 h-16"><use href="#org-belalang"/></svg>
+                <svg class="w-10 h-10 text-white"><use href="#icon-arrow"/></svg>
+                <svg class="w-16 h-16"><use href="#org-katak"/></svg>
+                <svg class="w-10 h-10 text-white"><use href="#icon-arrow"/></svg>
+                <svg class="w-16 h-16"><use href="#org-ular"/></svg>
+                <svg class="w-10 h-10 text-white"><use href="#icon-arrow"/></svg>
+                <svg class="w-16 h-16"><use href="#char-eagle"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen: Rules -->
+    <div id="screen-rules" class="screen hidden-screen absolute inset-0 z-20 flex flex-col items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div class="panel-wood w-full max-w-3xl p-6 md:p-10 relative">
+            <button onclick="showScreen('screen-home')" class="absolute -top-4 -right-4 bg-red-500 border-4 border-white text-white rounded-full w-12 h-12 font-game text-2xl hover:scale-110 transition-transform btn-game">X</button>
+            <h2 class="text-4xl font-game text-yellow-300 text-center mb-6" style="text-shadow: 2px 2px 0 #000;">Petunjuk Permainan</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="bg-white/10 p-4 rounded-lg flex gap-4">
+                    <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center font-game text-2xl">1</div>
+                    <p class="text-sm">Bagi kelas menjadi dua tim: <strong>Tim Elang (Biru)</strong> dan <strong>Tim Harimau (Oranye)</strong>.</p>
+                </div>
+                <div class="bg-white/10 p-4 rounded-lg flex gap-4">
+                    <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center font-game text-2xl">2</div>
+                    <p class="text-sm">Ada 5 ronde. Jawab bergantian sesuai instruksi di layar.</p>
+                </div>
+                <div class="bg-white/10 p-4 rounded-lg flex gap-4">
+                    <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center font-game text-2xl">3</div>
+                    <p class="text-sm">Gunakan layar sentuh (IFP) dengan menekan tombol atau memilih organisme.</p>
+                </div>
+                <div class="bg-white/10 p-4 rounded-lg flex gap-4">
+                    <div class="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center font-game text-2xl">4</div>
+                    <p class="text-sm">Tim dengan skor daun terbanyak di akhir game menang!</p>
+                </div>
+            </div>
+            <div class="mt-6 text-center">
+                <svg class="w-20 h-20 inline-block anim-bounce"><use href="#char-explorer"/></svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen: VS (Setup) -->
+    <div id="screen-vs" class="screen hidden-screen absolute inset-0 z-20 flex flex-col items-center justify-center p-4 bg-black/80">
+        <h2 class="text-5xl font-game text-white mb-10 anim-glow" style="text-shadow: 2px 2px 0 #000;">ARENA DUEL</h2>
+        <div class="flex items-center justify-center gap-4 w-full max-w-4xl">
+            <!-- Team A -->
+            <div class="flex-1 bg-blue-600/50 border-4 border-blue-400 p-6 rounded-2xl flex flex-col items-center text-center transform -rotate-2">
+                <div class="w-32 h-32 bg-blue-200 rounded-full border-4 border-white flex items-center justify-center mb-4 anim-bounce">
+                    <svg class="w-24 h-24"><use href="#char-eagle"/></svg>
+                </div>
+                <h3 class="text-3xl font-game text-white" style="text-shadow: 2px 2px 0 #000;">TIM ELANG</h3>
+            </div>
+            
+            <div class="text-6xl font-black text-yellow-400 italic" style="text-shadow: 4px 4px 0 #000;">VS</div>
+            
+            <!-- Team B -->
+            <div class="flex-1 bg-orange-600/50 border-4 border-orange-400 p-6 rounded-2xl flex flex-col items-center text-center transform rotate-2">
+                <div class="w-32 h-32 bg-orange-200 rounded-full border-4 border-white flex items-center justify-center mb-4 anim-bounce" style="animation-delay: 0.5s">
+                    <svg class="w-24 h-24"><use href="#char-tiger"/></svg>
+                </div>
+                <h3 class="text-3xl font-game text-white" style="text-shadow: 2px 2px 0 #000;">TIM HARIMAU</h3>
+            </div>
+        </div>
+        <button onclick="startRound1()" class="mt-12 btn-game bg-green-500 text-white font-game text-3xl py-4 px-10 rounded-full border-4 border-green-700 anim-glow">MULAI RONDE 1</button>
+    </div>
+
+    <!-- GAME HUD (Always on top during rounds) -->
+    <div id="game-hud" class="hidden-screen absolute top-0 left-0 w-full p-4 flex justify-between items-start z-30 pointer-events-none">
+        <!-- Score Team A -->
+        <div class="bg-blue-600 border-4 border-white rounded-xl p-2 flex items-center gap-2 shadow-lg min-w-[150px]">
+            <svg class="w-10 h-10"><use href="#char-eagle"/></svg>
+            <div class="text-white font-game">
+                <div class="text-xs">ELANG</div>
+                <div class="flex items-center gap-1 text-2xl">
+                    <svg class="w-6 h-6"><use href="#icon-leaf"/></svg>
+                    <span id="score-a">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Center: Round & Timer -->
+        <div class="flex flex-col items-center gap-2">
+            <div id="hud-round-badge" class="bg-yellow-500 border-4 border-yellow-700 text-white font-game px-6 py-2 rounded-full text-xl shadow-lg" style="text-shadow: 1px 1px 0 #000;">
+                RONDE 1
+            </div>
+            <div id="hud-timer" class="bg-gray-800 border-4 border-gray-600 text-white font-game px-4 py-2 rounded-lg text-3xl shadow-lg w-24 text-center">
+                10
+            </div>
+            <div id="hud-turn-indicator" class="bg-white text-black font-bold px-4 py-1 rounded-full shadow text-sm uppercase">
+                Giliran Tim Elang
+            </div>
+        </div>
+
+        <!-- Score Team B -->
+        <div class="bg-orange-600 border-4 border-white rounded-xl p-2 flex items-center gap-2 shadow-lg min-w-[150px] flex-row-reverse text-right">
+            <svg class="w-10 h-10"><use href="#char-tiger"/></svg>
+            <div class="text-white font-game">
+                <div class="text-xs">HARIMAU</div>
+                <div class="flex items-center justify-end gap-1 text-2xl">
+                    <span id="score-b">0</span>
+                    <svg class="w-6 h-6"><use href="#icon-leaf"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Screen: Game Rounds Container -->
+    <div id="screen-game" class="screen hidden-screen absolute inset-0 z-20 pt-32 pb-8 px-4 flex flex-col items-center">
+        <!-- Content injected via JS based on round -->
+        <div id="game-board" class="w-full max-w-5xl h-full panel-wood relative overflow-hidden flex flex-col p-6 pointer-events-auto">
+            <!-- Dynamic Content Here -->
+        </div>
+    </div>
+
+    <!-- Screen: Interstitial (Round Transition) -->
+    <div id="screen-transition" class="screen hidden-screen absolute inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/90">
+        <h2 id="trans-title" class="text-6xl font-game text-yellow-400 mb-4 text-center anim-bounce" style="text-shadow: 3px 3px 0 #000;">RONDE 2</h2>
+        <p id="trans-desc" class="text-2xl text-white font-bold text-center mb-8">Susun Rantai Makanan!</p>
+        <button id="btn-next-round" class="btn-game bg-green-500 text-white font-game text-2xl py-3 px-8 rounded-full border-4 border-green-700">LANJUT</button>
+    </div>
+
+    <!-- Screen: Victory -->
+    <div id="screen-victory" class="screen hidden-screen absolute inset-0 z-50 flex flex-col items-center justify-center p-4 bg-platformer">
+        <!-- Confetti container -->
+        <div id="confetti-container" class="absolute inset-0 pointer-events-none overflow-hidden"></div>
+        
+        <div class="panel-wood w-full max-w-3xl p-8 text-center relative z-10 flex flex-col items-center">
+            <svg class="w-32 h-32 anim-glow mb-4"><use href="#icon-cup"/></svg>
+            <h2 class="text-5xl font-game text-yellow-300 mb-2" style="text-shadow: 2px 2px 0 #000;">DUEL SELESAI!</h2>
+            <h3 id="victory-winner" class="text-4xl font-game text-white mb-6" style="text-shadow: 2px 2px 0 #000;">TIM ELANG MENANG!</h3>
+            
+            <div class="flex justify-center gap-8 w-full mb-8">
+                <div class="bg-blue-600/50 p-4 rounded-xl border-2 border-blue-400 w-1/3">
+                    <svg class="w-16 h-16 mx-auto mb-2"><use href="#char-eagle"/></svg>
+                    <div class="text-3xl font-game text-white flex justify-center gap-2"><span id="final-score-a">0</span> <svg class="w-8 h-8"><use href="#icon-leaf"/></svg></div>
+                </div>
+                <div class="bg-orange-600/50 p-4 rounded-xl border-2 border-orange-400 w-1/3">
+                    <svg class="w-16 h-16 mx-auto mb-2"><use href="#char-tiger"/></svg>
+                    <div class="text-3xl font-game text-white flex justify-center gap-2"><span id="final-score-b">0</span> <svg class="w-8 h-8"><use href="#icon-leaf"/></svg></div>
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="resetGame()" class="btn-game bg-green-500 text-white font-game text-xl py-3 px-6 rounded-xl border-4 border-green-700">MAIN LAGI</button>
+                <button onclick="window.location.reload()" class="btn-game bg-gray-500 text-white font-game text-xl py-3 px-6 rounded-xl border-4 border-gray-700">MENU UTAMA</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        const gameState = {
+            sound: true,
+            scores: { a: 0, b: 0 },
+            turn: 'a', // 'a' or 'b'
+            round: 1,
+            timer: 0,
+            timerInterval: null,
+            currentQuestionIdx: 0,
+            roundData: null,
+            tempSelection: null, // Used for drag/drop alternatives
+        };
+
+        const teams = {
+            a: { name: 'TIM ELANG', color: 'bg-blue-500', border: 'border-blue-700', icon: '#char-eagle' },
+            b: { name: 'TIM HARIMAU', color: 'bg-orange-500', border: 'border-orange-700', icon: '#char-tiger' }
+        };
+
+        // --- Data Questions & Scenarios ---
+        const gameData = {
+            round1: [
+                { q: "Manakah yang berperan sebagai produsen di ekosistem sawah?", options: [ {t:"Padi", i:"#org-padi"}, {t:"Belalang", i:"#org-belalang"}, {t:"Katak", i:"#org-katak"} ], ans: 0 },
+                { q: "Hewan apa yang memakan padi (Konsumen Tingkat 1)?", options: [ {t:"Ular", i:"#org-ular"}, {t:"Tikus", i:"#org-tikus"}, {t:"Elang", i:"#char-eagle"} ], ans: 1 },
+                { q: "Jika katak memakan belalang, katak disebut?", options: [ {t:"Produsen", i:"#icon-leaf"}, {t:"Konsumen 2", i:"#icon-star"}, {t:"Pengurai", i:"#icon-book"} ], ans: 1 },
+                { q: "Siapa predator puncak dalam ekosistem ini?", options: [ {t:"Ular", i:"#org-ular"}, {t:"Elang", i:"#char-eagle"}, {t:"Katak", i:"#org-katak"} ], ans: 1 }
+            ],
+            round2: {
+                target: ['padi', 'belalang', 'katak', 'ular'],
+                items: [
+                    { id: 'katak', name: 'Katak', icon: '#org-katak' },
+                    { id: 'ular', name: 'Ular', icon: '#org-ular' },
+                    { id: 'padi', name: 'Padi', icon: '#org-padi' },
+                    { id: 'belalang', name: 'Belalang', icon: '#org-belalang' }
+                ]
+            },
+            round3: {
+                nodes: [
+                    { id: 'padi', name: 'Padi', icon: '#org-padi', x: '10%', y: '40%' },
+                    { id: 'tikus', name: 'Tikus', icon: '#org-tikus', x: '40%', y: '20%' },
+                    { id: 'belalang', name: 'Belalang', icon: '#org-belalang', x: '40%', y: '60%' },
+                    { id: 'ular', name: 'Ular', icon: '#org-ular', x: '70%', y: '20%' },
+                    { id: 'katak', name: 'Katak', icon: '#org-katak', x: '70%', y: '60%' },
+                    { id: 'elang', name: 'Elang', icon: '#char-eagle', x: '90%', y: '40%' }
+                ],
+                tasks: [
+                    { prompt: "Hubungkan Padi ke hewan yang memakannya!", validStarts: ['padi'], validEnds: ['tikus', 'belalang'] },
+                    { prompt: "Hubungkan predator yang memakan Katak!", validStarts: ['katak'], validEnds: ['ular'] }
+                ]
+            },
+            round4: [
+                {
+                    scenario: "Para petani memburu Ular sawah secara besar-besaran.",
+                    visualRemove: '#org-ular',
+                    q: "Apa yang akan terjadi pada populasi Tikus?",
+                    options: ["Meningkat drastis", "Menurun drastis", "Tidak berubah"],
+                    ans: 0
+                },
+                {
+                    scenario: "Banyak Elang mati karena racun.",
+                    visualRemove: '#char-eagle',
+                    q: "Apa yang akan terjadi pada populasi Ular?",
+                    options: ["Pindah tempat", "Meningkat tajam", "Mati semua"],
+                    ans: 1
+                }
+            ],
+            round5: [
+                { q: "BOSS: Energi terbesar dalam rantai makanan berada di tingkat mana?", options: ["Konsumen Puncak", "Konsumen 1", "Produsen"], ans: 2 },
+                { q: "BOSS: Apa fungsi dekomposer (pengurai) di akhir rantai makanan?", options: ["Memakan elang", "Mengembalikan nutrisi ke tanah", "Menghasilkan oksigen"], ans: 1 }
+            ]
+        };
+
+        // --- Core Functions ---
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden-screen'));
+            document.getElementById(screenId).classList.remove('hidden-screen');
+        }
+
+        function toggleSound() {
+            gameState.sound = !gameState.sound;
+            const svg = document.getElementById('svg-sound');
+            const bg = document.getElementById('sound-icon-bg');
+            const text = document.getElementById('sound-status-text');
+            if (gameState.sound) {
+                svg.innerHTML = '<use href="#icon-sound-on"/>';
+                bg.className = 'w-20 h-20 bg-yellow-200 rounded-full border-4 border-white flex items-center justify-center';
+                text.innerText = "Suara Aktif";
+            } else {
+                svg.innerHTML = '<use href="#icon-sound-off"/>';
+                bg.className = 'w-20 h-20 bg-gray-300 rounded-full border-4 border-white flex items-center justify-center';
+                text.innerText = "Suara Nonaktif";
+            }
+        }
+
+        function playSound(type) {
+            if (!gameState.sound) return;
+            // Native web audio beep generation to avoid external files
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                
+                if (type === 'correct') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+                    osc.frequency.exponentialRampToValueAtTime(1046.50, ctx.currentTime + 0.1); // C6
+                    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+                    gain.gain.setValueAtTime(0.5, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.3);
+                } else if (type === 'click') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(400, ctx.currentTime);
+                    gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+                    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.1);
+                }
+            } catch(e) {} // Ignore if browser blocks
+        }
+
+        function updateHUD() {
+            document.getElementById('score-a').innerText = gameState.scores.a;
+            document.getElementById('score-b').innerText = gameState.scores.b;
+            const turnInd = document.getElementById('hud-turn-indicator');
+            turnInd.innerText = `Giliran ${teams[gameState.turn].name}`;
+            turnInd.className = `font-bold px-4 py-1 rounded-full shadow text-sm uppercase text-white ${teams[gameState.turn].color}`;
+            document.getElementById('hud-round-badge').innerText = `RONDE ${gameState.round}`;
+        }
+
+        function addScore(points) {
+            gameState.scores[gameState.turn] += points;
+            updateHUD();
+            // Animate score text
+            const scoreEl = document.getElementById(`score-${gameState.turn}`);
+            scoreEl.classList.add('anim-shake', 'text-yellow-300');
+            setTimeout(() => scoreEl.classList.remove('anim-shake', 'text-yellow-300'), 500);
+        }
+
+        function switchTurn() {
+            gameState.turn = gameState.turn === 'a' ? 'b' : 'a';
+            updateHUD();
+        }
+
+        // --- Timer Logic ---
+        function startTimer(seconds, onTimeout) {
+            clearInterval(gameState.timerInterval);
+            gameState.timer = seconds;
+            const timerEl = document.getElementById('hud-timer');
+            timerEl.innerText = gameState.timer;
+            timerEl.className = 'bg-gray-800 border-4 border-gray-600 text-white font-game px-4 py-2 rounded-lg text-3xl shadow-lg w-24 text-center';
+            
+            gameState.timerInterval = setInterval(() => {
+                gameState.timer--;
+                timerEl.innerText = gameState.timer;
+                if (gameState.timer <= 3) {
+                    timerEl.classList.replace('bg-gray-800', 'bg-red-600');
+                    timerEl.classList.replace('border-gray-600', 'border-red-800');
+                    timerEl.classList.add('anim-shake');
+                    setTimeout(() => timerEl.classList.remove('anim-shake'), 200);
+                }
+                if (gameState.timer <= 0) {
+                    clearInterval(gameState.timerInterval);
+                    playSound('wrong');
+                    onTimeout();
+                }
+            }, 1000);
+        }
+
+        function stopTimer() {
+            clearInterval(gameState.timerInterval);
+        }
+
+        // --- Transitions ---
+        function startGameSetup() {
+            playSound('click');
+            showScreen('screen-vs');
+        }
+
+        function showTransition(title, desc, nextAction) {
+            showScreen('screen-transition');
+            document.getElementById('trans-title').innerText = title;
+            document.getElementById('trans-desc').innerText = desc;
+            const btn = document.getElementById('btn-next-round');
+            btn.onclick = () => { playSound('click'); nextAction(); };
+        }
+
+        function startRound1() {
+            gameState.round = 1;
+            gameState.currentQuestionIdx = 0;
+            gameState.turn = 'a';
+            document.getElementById('game-hud').classList.remove('hidden-screen');
+            updateHUD();
+            renderRound1();
+            showScreen('screen-game');
+        }
+
+        function renderRound1() {
+            const board = document.getElementById('game-board');
+            if (gameState.currentQuestionIdx >= gameData.round1.length) {
+                endRound(1);
+                return;
+            }
+            const q = gameData.round1[gameState.currentQuestionIdx];
+            
+            let optionsHTML = '';
+            q.options.forEach((opt, idx) => {
+                optionsHTML += `
+                    <button onclick="handleAnswerR1(${idx}, ${q.ans})" class="btn-game bg-white text-gray-800 border-4 border-gray-300 hover:border-blue-500 rounded-xl p-4 text-xl font-bold flex flex-col items-center justify-center gap-2 w-full h-full">
+                        <svg class="w-16 h-16"><use href="${opt.i}"/></svg>
+                        <span>${opt.t}</span>
+                    </button>
+                `;
+            });
+
+            board.innerHTML = `
+                <div class="text-center mb-6 mt-4">
+                    <h3 class="text-2xl text-yellow-300 font-game drop-shadow-md">DUEL KILAT</h3>
+                    <div class="bg-black/40 rounded-xl p-6 mt-4 border-2 border-white/20">
+                        <p class="text-3xl text-white font-bold leading-relaxed">${q.q}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 items-center px-8 pb-8">
+                    ${optionsHTML}
+                </div>
+            `;
+            startTimer(10, () => {
+                // Timeout logic
+                showFeedback(false, "Waktu Habis!", renderNextR1);
+            });
+        }
+
+        function handleAnswerR1(selected, correct) {
+            stopTimer();
+            const isCorrect = selected === correct;
+            if (isCorrect) {
+                playSound('correct');
+                addScore(10);
+            } else {
+                playSound('wrong');
+            }
+            showFeedback(isCorrect, isCorrect ? "BENAR! +10 Daun" : "SALAH!", renderNextR1);
+        }
+
+        function renderNextR1() {
+            gameState.currentQuestionIdx++;
+            switchTurn();
+            renderRound1();
+        }
+
+        function showFeedback(isCorrect, text, callback) {
+            const board = document.getElementById('game-board');
+            const color = isCorrect ? 'bg-green-500' : 'bg-red-500';
+            const icon = isCorrect ? '#icon-leaf' : '#icon-sound-off'; // fallback icon
+            
+            const overlay = document.createElement('div');
+            overlay.className = `absolute inset-0 ${color} z-50 flex flex-col items-center justify-center anim-shake bg-opacity-90`;
+            overlay.innerHTML = `
+                <svg class="w-32 h-32 text-white mb-4 ${isCorrect?'anim-glow':''}"><use href="${icon}"/></svg>
+                <h2 class="text-6xl font-game text-white drop-shadow-lg">${text}</h2>
+            `;
+            board.appendChild(overlay);
+            setTimeout(() => {
+                overlay.remove();
+                callback();
+            }, 1500);
+        }
+
+        function endRound(currentRound) {
+            stopTimer();
+            if (currentRound === 1) showTransition("RONDE 2", "Susun Rantai Makanan", startRound2);
+            else if (currentRound === 2) showTransition("RONDE 3", "Bangun Jaring Makanan", startRound3);
+            else if (currentRound === 3) showTransition("RONDE 4", "Serangan Ekosistem", startRound4);
+            else if (currentRound === 4) showTransition("RONDE 5", "BOSS BATTLE!", startRound5);
+            else showVictory();
+        }
+
+        function startRound2() {
+            gameState.round = 2;
+            gameState.turn = gameState.scores.a <= gameState.scores.b ? 'a' : 'b'; // Losing team goes first
+            updateHUD();
+            gameState.roundData = { currentSlot: 0, sequence: [] };
+            renderRound2();
+            showScreen('screen-game');
+        }
+
+        function renderRound2() {
+            const board = document.getElementById('game-board');
+            let itemsHTML = '';
+            gameData.round2.items.forEach(item => {
+                const isUsed = gameState.roundData.sequence.includes(item.id);
+                itemsHTML += `
+                    <button onclick="handleSelectR2('${item.id}')" class="btn-game ${isUsed ? 'opacity-50 cursor-not-allowed' : 'hover:-translate-y-2'} bg-white rounded-xl p-4 flex flex-col items-center border-4 border-gray-300 w-24 h-24 md:w-32 md:h-32" ${isUsed?'disabled':''}>
+                        <svg class="w-12 h-12 md:w-16 md:h-16"><use href="${item.icon}"/></svg>
+                        <span class="text-black font-bold text-sm md:text-base mt-2">${item.name}</span>
+                    </button>
+                `;
+            });
+
+            let slotsHTML = '';
+            for(let i=0; i<4; i++) {
+                const filledId = gameState.roundData.sequence[i];
+                const item = filledId ? gameData.round2.items.find(x=>x.id === filledId) : null;
+                const isActive = i === gameState.roundData.currentSlot;
+                
+                slotsHTML += `
+                    <div class="flex items-center">
+                        <div class="slot-target w-24 h-24 md:w-32 md:h-32 flex items-center justify-center ${isActive ? 'active' : ''}">
+                            ${item ? `<svg class="w-16 h-16"><use href="${item.icon}"/></svg>` : `<span class="text-white/50 font-bold text-3xl">?</span>`}
+                        </div>
+                        ${i < 3 ? `<svg class="w-10 h-10 mx-2 text-white"><use href="#icon-arrow"/></svg>` : ''}
+                    </div>
+                `;
+            }
+
+            board.innerHTML = `
+                <div class="text-center mb-6 mt-4">
+                    <h3 class="text-2xl text-yellow-300 font-game drop-shadow-md">SUSUN RANTAI MAKANAN</h3>
+                    <p class="text-white font-bold">Pilih urutan yang benar dari Produsen hingga Konsumen Puncak!</p>
+                </div>
+                <div class="flex flex-wrap justify-center items-center gap-2 mb-12 mt-8">
+                    ${slotsHTML}
+                </div>
+                <div class="flex flex-wrap justify-center gap-4 bg-black/20 p-6 rounded-xl border border-white/20">
+                    ${itemsHTML}
+                </div>
+            `;
+            startTimer(30, checkRound2);
+        }
+
+        function handleSelectR2(itemId) {
+            playSound('click');
+            gameState.roundData.sequence.push(itemId);
+            gameState.roundData.currentSlot++;
+            if(gameState.roundData.currentSlot >= 4) {
+                stopTimer();
+                checkRound2();
+            } else {
+                renderRound2();
+            }
+        }
+
+        function checkRound2() {
+            const seq = gameState.roundData.sequence;
+            const target = gameData.round2.target;
+            let isCorrect = true;
+            for(let i=0; i<4; i++) {
+                if(seq[i] !== target[i]) isCorrect = false;
+            }
+
+            if(isCorrect) {
+                playSound('correct');
+                addScore(20);
+                showFeedback(true, "SEMPURNA! +20 Daun", () => endRound(2));
+            } else {
+                playSound('wrong');
+                showFeedback(false, "URUTAN SALAH!", () => endRound(2));
+            }
+        }
+
+        function startRound3() {
+            gameState.round = 3;
+            gameState.currentQuestionIdx = 0;
+            updateHUD();
+            renderRound3();
+            showScreen('screen-game');
+        }
+
+        function renderRound3() {
+            const board = document.getElementById('game-board');
+            if (gameState.currentQuestionIdx >= gameData.round3.tasks.length) {
+                endRound(3);
+                return;
+            }
+            const task = gameData.round3.tasks[gameState.currentQuestionIdx];
+            gameState.tempSelection = null;
+
+            let nodesHTML = '';
+            gameData.round3.nodes.forEach(node => {
+                nodesHTML += `
+                    <div id="node-${node.id}" onclick="handleNodeClick('${node.id}')" class="absolute w-20 h-20 md:w-24 md:h-24 bg-white/10 border-4 border-transparent hover:border-yellow-400 rounded-full flex flex-col items-center justify-center cursor-pointer transition-all btn-game" style="left: ${node.x}; top: ${node.y}; transform: translate(-50%, -50%);">
+                        <svg class="w-12 h-12 md:w-16 md:h-16 pointer-events-none"><use href="${node.icon}"/></svg>
+                        <span class="text-white text-xs font-bold pointer-events-none drop-shadow-md">${node.name}</span>
+                    </div>
+                `;
+            });
+
+            board.innerHTML = `
+                <div class="text-center mb-2 mt-2 relative z-10">
+                    <h3 class="text-2xl text-yellow-300 font-game drop-shadow-md">JARING MAKANAN</h3>
+                    <div class="bg-black/60 rounded-xl p-4 inline-block mt-2 border border-white/20">
+                        <p class="text-xl text-white font-bold" id="r3-prompt">${task.prompt}</p>
+                        <p class="text-sm text-yellow-200 mt-1">Sentuh sumber, lalu sentuh tujuan!</p>
+                    </div>
+                </div>
+                <div class="flex-1 relative w-full h-full mt-4" id="web-container">
+                    <!-- SVG for drawing lines -->
+                    <svg id="web-lines" class="absolute inset-0 w-full h-full pointer-events-none z-0">
+                        <!-- Pre-existing lines to show it's a web -->
+                        <line x1="10%" y1="40%" x2="40%" y2="20%" stroke="rgba(255,255,255,0.2)" stroke-width="2" stroke-dasharray="5,5"/>
+                    </svg>
+                    ${nodesHTML}
+                </div>
+            `;
+            startTimer(20, () => showFeedback(false, "WAKTU HABIS!", renderNextR3));
+        }
+
+        function handleNodeClick(nodeId) {
+            playSound('click');
+            const nodeEl = document.getElementById(`node-${nodeId}`);
+            
+            if (!gameState.tempSelection) {
+                // First click
+                gameState.tempSelection = nodeId;
+                nodeEl.classList.add('border-yellow-400', 'bg-yellow-400/30');
+            } else {
+                // Second click
+                const startId = gameState.tempSelection;
+                const endId = nodeId;
+                
+                // Visual feedback line
+                const linesSvg = document.getElementById('web-lines');
+                const startNode = gameData.round3.nodes.find(n => n.id === startId);
+                const endNode = gameData.round3.nodes.find(n => n.id === endId);
+                
+                linesSvg.innerHTML += `<line x1="${startNode.x}" y1="${startNode.y}" x2="${endNode.x}" y2="${endNode.y}" stroke="#FFD700" stroke-width="4" class="svg-line"/>`;
+
+                stopTimer();
+                const task = gameData.round3.tasks[gameState.currentQuestionIdx];
+                const isCorrect = task.validStarts.includes(startId) && task.validEnds.includes(endId);
+
+                setTimeout(() => {
+                    if(isCorrect) {
+                        playSound('correct');
+                        addScore(15);
+                        showFeedback(true, "TEPAT! +15 Daun", renderNextR3);
+                    } else {
+                        playSound('wrong');
+                        showFeedback(false, "HUBUNGAN SALAH!", renderNextR3);
+                    }
+                }, 1000);
+            }
+        }
+
+        function renderNextR3() {
+            gameState.currentQuestionIdx++;
+            switchTurn();
+            renderRound3();
+        }
+
+        function startRound4() {
+            gameState.round = 4;
+            gameState.currentQuestionIdx = 0;
+            updateHUD();
+            renderRound4();
+            showScreen('screen-game');
+        }
+
+        function renderRound4() {
+            const board = document.getElementById('game-board');
+            if (gameState.currentQuestionIdx >= gameData.round4.length) {
+                endRound(4);
+                return;
+            }
+            const q = gameData.round4[gameState.currentQuestionIdx];
+            
+            let optionsHTML = '';
+            q.options.forEach((opt, idx) => {
+                optionsHTML += `
+                    <button onclick="handleAnswerR4(${idx}, ${q.ans})" class="btn-game bg-white text-gray-800 border-4 border-gray-300 hover:border-blue-500 rounded-xl py-3 px-6 text-xl font-bold w-full text-left flex items-center justify-between">
+                        <span>${opt}</span>
+                        <div class="w-6 h-6 border-2 border-gray-400 rounded-full"></div>
+                    </button>
+                `;
+            });
+
+            board.innerHTML = `
+                <div class="text-center mb-4 mt-2">
+                    <h3 class="text-2xl text-yellow-300 font-game drop-shadow-md">SERANGAN EKOSISTEM</h3>
+                </div>
+                <div class="flex flex-col md:flex-row gap-6 h-full p-4">
+                    <!-- Visual Area -->
+                    <div class="flex-1 bg-black/40 border-4 border-red-500/50 rounded-2xl flex flex-col items-center justify-center p-6 relative overflow-hidden">
+                        <div class="absolute inset-0 bg-red-500/10 anim-glow"></div>
+                        <p class="text-white text-xl font-bold text-center mb-8 relative z-10">"${q.scenario}"</p>
+                        <div class="flex justify-center gap-8 relative z-10">
+                            <!-- Show ecosystem, fade out the removed one -->
+                            <svg class="w-20 h-20"><use href="#org-padi"/></svg>
+                            <svg class="w-20 h-20 ${q.visualRemove === '#org-ular' ? 'opacity-20 grayscale' : ''}"><use href="#org-ular"/></svg>
+                            <svg class="w-20 h-20 ${q.visualRemove === '#char-eagle' ? 'opacity-20 grayscale' : ''}"><use href="#char-eagle"/></svg>
+                        </div>
+                    </div>
+                    <!-- Question Area -->
+                    <div class="flex-1 flex flex-col justify-center gap-4">
+                        <div class="bg-blue-900/80 p-4 rounded-xl border-2 border-blue-400">
+                            <p class="text-2xl text-white font-bold">${q.q}</p>
+                        </div>
+                        <div class="flex flex-col gap-3">
+                            ${optionsHTML}
+                        </div>
+                    </div>
+                </div>
+            `;
+            startTimer(15, () => showFeedback(false, "WAKTU HABIS!", renderNextR4));
+        }
+
+        function handleAnswerR4(selected, correct) {
+            stopTimer();
+            const isCorrect = selected === correct;
+            if (isCorrect) {
+                playSound('correct');
+                addScore(15);
+            } else {
+                playSound('wrong');
+            }
+            showFeedback(isCorrect, isCorrect ? "BENAR! +15 Daun" : "SALAH!", renderNextR4);
+        }
+
+        function renderNextR4() {
+            gameState.currentQuestionIdx++;
+            switchTurn();
+            renderRound4();
+        }
+
+        // ROUND 5: BOSS BATTLE
+        function startRound5() {
+            gameState.round = 5;
+            gameState.currentQuestionIdx = 0;
+            // Both teams can answer, but we'll stick to turn-based for simplicity, or just give to lagging team
+            updateHUD();
+            renderRound5();
+            showScreen('screen-game');
+        }
+
+        function renderRound5() {
+            const board = document.getElementById('game-board');
+            if (gameState.currentQuestionIdx >= gameData.round5.length) {
+                endRound(5);
+                return;
+            }
+            const q = gameData.round5[gameState.currentQuestionIdx];
+            
+            let optionsHTML = '';
+            q.options.forEach((opt, idx) => {
+                optionsHTML += `
+                    <button onclick="handleAnswerR5(${idx}, ${q.ans})" class="btn-game bg-red-900 text-white border-4 border-red-500 hover:bg-red-700 rounded-xl py-4 px-6 text-xl font-bold w-full mb-3 shadow-lg">
+                        ${opt}
+                    </button>
+                `;
+            });
+
+            // Dramatic styling
+            board.className = "w-full max-w-5xl h-full panel-wood relative overflow-hidden flex flex-col p-6 pointer-events-auto border-red-600 shadow-[inset_0_0_50px_rgba(255,0,0,0.5)]";
+
+            board.innerHTML = `
+                <div class="absolute inset-0 bg-red-900/30 pointer-events-none"></div>
+                <div class="text-center mb-2 mt-2 relative z-10 flex flex-col items-center">
+                    <h3 class="text-4xl text-red-400 font-game drop-shadow-[0_2px_2px_#000] anim-shake">BOSS BATTLE!</h3>
+                    <svg class="w-48 h-48 anim-bounce mt-4 drop-shadow-[0_0_15px_red]"><use href="#boss-eagle"/></svg>
+                </div>
+                <div class="flex flex-col flex-1 justify-end relative z-10 px-4 md:px-20 pb-4">
+                    <div class="bg-black/80 border-4 border-red-500 p-6 rounded-2xl mb-6">
+                        <p class="text-2xl md:text-3xl text-white font-bold text-center">${q.q}</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-2">
+                        ${optionsHTML}
+                    </div>
+                </div>
+            `;
+            startTimer(15, () => showFeedback(false, "DISERANG BOSS!", renderNextR5));
+        }
+
+        function handleAnswerR5(selected, correct) {
+            stopTimer();
+            const isCorrect = selected === correct;
+            if (isCorrect) {
+                playSound('correct');
+                addScore(30); // Double points
+            } else {
+                playSound('wrong');
+            }
+            showFeedback(isCorrect, isCorrect ? "CRITICAL HIT! +30" : "MISSED!", renderNextR5);
+        }
+
+        function renderNextR5() {
+            gameState.currentQuestionIdx++;
+            switchTurn();
+            renderRound5();
+        }
+
+        function showVictory() {
+            playSound('correct');
+            document.getElementById('game-hud').classList.add('hidden-screen');
+            showScreen('screen-victory');
+            
+            const scoreA = gameState.scores.a;
+            const scoreB = gameState.scores.b;
+            
+            document.getElementById('final-score-a').innerText = scoreA;
+            document.getElementById('final-score-b').innerText = scoreB;
+            
+            const winnerText = document.getElementById('victory-winner');
+            if (scoreA > scoreB) {
+                winnerText.innerText = "TIM ELANG MENANG!";
+                winnerText.className = "text-5xl font-game text-blue-300 mb-6 anim-bounce";
+            } else if (scoreB > scoreA) {
+                winnerText.innerText = "TIM HARIMAU MENANG!";
+                winnerText.className = "text-5xl font-game text-orange-400 mb-6 anim-bounce";
+            } else {
+                winnerText.innerText = "DUEL IMBANG!";
+                winnerText.className = "text-5xl font-game text-white mb-6 anim-bounce";
+            }
+
+            createConfetti();
+        }
+
+        function createConfetti() {
+            const container = document.getElementById('confetti-container');
+            container.innerHTML = '';
+            const colors = ['#FFD700', '#32CD32', '#3b82f6', '#f97316', '#ff0000'];
+            for(let i=0; i<100; i++) {
+                const conf = document.createElement('div');
+                conf.className = 'confetti';
+                conf.style.left = Math.random() * 100 + 'vw';
+                conf.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                conf.style.animation = `confettiFall ${Math.random() * 3 + 2}s linear forwards`;
+                conf.style.animationDelay = `${Math.random() * 2}s`;
+                container.appendChild(conf);
+            }
+        }
+
+        function resetGame() {
+            gameState.scores = { a: 0, b: 0 };
+            gameState.round = 1;
+            gameState.turn = 'a';
+            document.getElementById('game-board').className = "w-full max-w-5xl h-full panel-wood relative overflow-hidden flex flex-col p-6 pointer-events-auto";
+            startRound1();
+        }
+
+        // Initial setup
+        window.onload = () => {
+            // Pre-load logic if needed
+            console.log("ECO-WEB DUEL Initialized");
+        };
+    </script>
+</body>
+</html>
